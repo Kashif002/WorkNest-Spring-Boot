@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <div th:replace="fragments/header :: head"></div>
+    <title>My Team Members</title>
+    <style>
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .member-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-align: center;
+        }
+        .member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .member-avatar {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+        }
+        .member-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+        .member-email {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .member-role {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .role-USER {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        .role-ADMIN {
+            background-color: #dc3545;
+            color: white;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-active {
+            background-color: #28a745;
+        }
+        .status-inactive {
+            background-color: #dc3545;
+        }
+        .no-team {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="fragments/navbar :: navbar"></div>
+    
+    <main class="container">
+        <h1>My Team Members</h1>
+        
+        <div th:if="${#lists.isEmpty(teamMembers)}" class="no-team">
+            <h3>You are not part of any team yet</h3>
+            <p>You are not currently part of any team or your team has no other members.</p>
+            <p style="margin-top: 1rem; font-size: 0.9rem; color: #999;">Contact your administrator to be added to a team.</p>
+        </div>
+
+        <div class="team-grid">
+            <div th:each="member : ${teamMembers}" class="member-card">
+                <div class="member-avatar" th:text="${#strings.substring(member.name, 0, 1)}">S</div>
+                
+                <h3 class="member-name" th:text="${member.name}">Team Member</h3>
+                <p class="member-email" th:text="${member.email}">member@example.com</p>
+                
+                <div style="margin-bottom: 1rem;">
+                    <span class="status-indicator" th:classappend="${member.isActive} ? 'status-active' : 'status-inactive'"></span>
+                    <span th:text="${member.isActive} ? 'Active' : 'On Leave'" style="font-size: 0.9rem; font-weight: 500;"></span>
+                </div>
+                
+                <span class="member-role" th:classappend="'role-' + ${member.role}" th:text="${member.role}">USER</span>
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="fragments/footer :: footer"></div>
+</body>
+</html>

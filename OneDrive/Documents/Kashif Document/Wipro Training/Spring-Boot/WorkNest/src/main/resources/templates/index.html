@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkNest - Task Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4e73df;
+            --secondary: #6f42c1;
+            --success: #1cc88a;
+            --info: #36b9cc;
+            --warning: #f6c23e;
+            --light-bg: #f8f9fc;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom right, #f8f9fc, #e3e6f0);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background: white !important;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .hero-section {
+            padding: 4rem 0;
+        }
+        
+        .display-4 {
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+        
+        .feature-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-radius: 8px;
+        }
+        
+        .btn-outline-primary {
+            border-color: var(--primary);
+            color: var(--primary);
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-radius: 8px;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .bg-primary-light {
+            background-color: rgba(78, 115, 223, 0.1);
+        }
+        
+        .bg-success-light {
+            background-color: rgba(28, 200, 138, 0.1);
+        }
+        
+        .bg-warning-light {
+            background-color: rgba(246, 194, 62, 0.1);
+        }
+        
+        .bg-info-light {
+            background-color: rgba(54, 185, 204, 0.1);
+        }
+        
+        .testimonial-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s;
+        }
+        
+        .testimonial-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        footer {
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-tasks me-2 text-primary"></i>WorkNest
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link me-3" href="/login">Login</a>
+                <a class="btn btn-primary" href="/register">Register</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center min-vh-75">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold text-primary mb-4">Streamline Your Team's Productivity</h1>
+                    <p class="lead mb-4">
+                        WorkNest is the ultimate task management system designed for teams and organizations. 
+                        Track progress, allocate tasks efficiently, and enhance collaboration with our intuitive platform.
+                    </p>
+                    <div class="d-grid gap-2 d-md-flex">
+                        <a href="/register" class="btn btn-primary btn-lg me-md-2">
+                            <i class="fas fa-user-plus me-2"></i>Register
+                        </a>
+                        <a href="#features" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-info-circle me-2"></i>Learn More
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-6 text-center">
+                    <img src="https://images.unsplash.com/photo-1611224923853-80b023f02d71?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                         alt="Task Management" class="img-fluid rounded-3 shadow-lg">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row text-center">
+                <div class="col-md-3 mb-4 mb-md-0">
+                    <div class="stats-number">95%</div>
+                    <p class="text-muted">Teams report increased productivity</p>
+                </div>
+                <div class="col-md-3 mb-4 mb-md-0">
+                    <div class="stats-number">10K+</div>
+                    <p class="text-muted">Tasks managed daily</p>
+                </div>
+                <div class="col-md-3 mb-4 mb-md-0">
+                    <div class="stats-number">500+</div>
+                    <p class="text-muted">Teams using WorkNest</p>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-number">24/7</div>
+                    <p class="text-muted">Reliable service</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">Powerful Features</h2>
+                <p class="lead text-muted">Everything you need to manage your team's tasks effectively</p>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card card h-100 p-4">
+                        <div class="feature-icon bg-primary-light text-primary mx-auto">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Admin Management</h5>
+                            <p class="card-text">Easily add users, allocate tasks, and track team progress with intuitive admin tools.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card card h-100 p-4">
+                        <div class="feature-icon bg-success-light text-success mx-auto">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Task Tracking</h5>
+                            <p class="card-text">View, update, and comment on tasks in real-time with our streamlined interface.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card card h-100 p-4">
+                        <div class="feature-icon bg-warning-light text-warning mx-auto">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Progress Dashboard</h5>
+                            <p class="card-text">Monitor team performance with real-time analytics and visual progress indicators.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card card h-100 p-4">
+                        <div class="feature-icon bg-info-light text-info mx-auto">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Collaboration</h5>
+                            <p class="card-text">Enhance teamwork with our built-in commenting and review system for tasks.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+	<!-- Footer -->
+	<footer class="py-4 mt-5">
+	    <div class="container">
+	        <div class="row">
+	            <div class="col-12 text-center">
+	                <p class="mb-0">&copy; 2025 WorkNest. All rights reserved.</p>
+	            </div>
+	        </div>
+	    </div>
+	</footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

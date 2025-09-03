@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login to WorkNest</title>
+    <style>
+        :root {
+            --primary-color: #e91e63;
+            --secondary-color: #9c27b0;
+            --light-text: #ffffff;
+            --border-color: #ddd;
+        }
+        
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: linear-gradient(90deg, var(--secondary-color), var(--primary-color));
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            color: var(--light-text);
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        
+        .auth-container { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: calc(100vh - 80px);
+            padding: 2rem; 
+        }
+        
+        .auth-form { 
+            background: #fff; 
+            padding: 3rem; 
+            border-radius: 10px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            width: 100%; 
+            max-width: 420px; 
+            text-align: center; 
+        }
+        
+        .auth-form h1 { 
+            margin-top: 0; 
+            margin-bottom: 1.5rem; 
+            color: #333;
+        }
+        
+        .form-group { 
+            margin-bottom: 1.5rem; 
+            text-align: left; 
+        }
+        
+        .form-group label { 
+            display: block; 
+            margin-bottom: 0.5rem; 
+            font-weight: 500; 
+            color: #555;
+        }
+        
+        .form-control { 
+            width: 100%; 
+            padding: 12px 15px; 
+            font-size: 1rem; 
+            border: 1px solid var(--border-color); 
+            border-radius: 5px; 
+            box-sizing: border-box;
+        }
+        
+        .btn-submit { 
+            width: 100%; 
+            padding: 15px; 
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            color: var(--light-text); 
+            background: var(--primary-color); 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            transition: background 0.3s; 
+        }
+        
+        .btn-submit:hover { 
+            background: #b81261; 
+        }
+        
+        .auth-switch-link { 
+            margin-top: 1.5rem; 
+        }
+        
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+        
+        footer {
+            background-color: #343a40;
+            color: white;
+            text-align: center;
+            padding: 1.5rem 0;
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Simple navbar for login page -->
+    <nav class="navbar">
+        <div>
+            <a href="/" class="navbar-brand">WorkNest</a>
+        </div>
+    </nav>
+
+    <main class="auth-container">
+        <div class="auth-form">
+            <h1>Login to Your Account</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-submit">Login</button>
+            </form>
+            <div id="errorMessage" class="error-message"></div>
+            <div id="logoutMessage" style="color: green; margin-top: 10px; display: none;">You have been logged out successfully.</div>
+            <div class="auth-switch-link">
+                <p>Don't have an account? <a href="/register">Register</a></p>
+            </div>
+        </div>
+    </main>
+
+
+    <script>
+        // Function to clear all authentication data
+        function clearAuthData() {
+            sessionStorage.removeItem('jwtToken');
+            sessionStorage.removeItem('userRole');
+            sessionStorage.removeItem('userName');
+            document.cookie = 'jwtToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        }
+        
+        // Check if user is already logged in with a VALID token
+        function checkExistingAuth() {
+            const token = sessionStorage.getItem('jwtToken');
+            const userRole = sessionStorage.getItem('userRole');
+            
+            if (token && userRole) {
+                // Check if token is expired based on payload
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    const expirationTime = payload.exp * 1000;
+                    const currentTime = Date.now();
+                    
+                    if (currentTime < expirationTime) {
+                        // Token is still valid, show a message with option to continue
+                        showAlreadyLoggedInMessage(userRole);
+                        return;
+                    }
+                } catch (error) {
+                    // Invalid token format, continue to show login form
+                }
+            }
+            
+            // If we reach here, either no token or expired/invalid token
+            clearAuthData();
+        }
+        
+        // Show message that user is already logged in
+        function showAlreadyLoggedInMessage(userRole) {
+            const userName = sessionStorage.getItem('userName') || 'User';
+            const dashboardUrl = userRole === 'ADMIN' ? '/admin/dashboard' : '/user/dashboard';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.innerHTML = `
+                <div style="background-color: #d1ecf1; color: #0c5460; padding: 1rem; border-radius: 5px; margin-bottom: 1rem; text-align: center;">
+                    <p><strong>You are already logged in as ${userName}</strong></p>
+                    <button onclick="window.location.href='${dashboardUrl}'" class="btn btn-primary" style="margin-right: 10px;">Go to Dashboard</button>
+                    <button onclick="clearAuthAndStay()" class="btn" style="background-color: #6c757d; color: white;">Login as Different User</button>
+                </div>
+            `;
+            
+            const authForm = document.querySelector('.auth-form');
+            authForm.insertBefore(messageDiv, authForm.firstChild);
+        }
+        
+        // Function to clear auth data and stay on login page
+        function clearAuthAndStay() {
+            clearAuthData();
+            location.reload(); // Refresh page to remove the message
+        }
+        
+        // Handle URL parameters and show appropriate messages
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('logout')) {
+            // Show logout message and clear auth data
+            document.getElementById('logoutMessage').style.display = 'block';
+            clearAuthData();
+        } else if (urlParams.has('force')) {
+            // Force login, clear auth data but don't show logout message
+            clearAuthData();
+        } else {
+            // Normal login page access, check if already authenticated
+            checkExistingAuth();
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // Basic validation
+            if (!email || !password) {
+                document.getElementById('errorMessage').textContent = 'Please fill in all fields';
+                document.getElementById('errorMessage').style.display = 'block';
+                return;
+            }
+
+            const formData = new URLSearchParams();
+            formData.append('email', email.trim().toLowerCase());
+            formData.append('password', password);
+
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const authResponse = await response.json();
+                    
+                    // Store token in both sessionStorage and as a cookie for server-side access
+                    sessionStorage.setItem('jwtToken', authResponse.jwt);
+                    sessionStorage.setItem('userRole', authResponse.role);
+                    sessionStorage.setItem('userName', authResponse.name);
+                    
+                    // Set JWT as httpOnly cookie for server-side authentication
+                    document.cookie = `jwtToken=${authResponse.jwt}; path=/; max-age=36000; SameSite=Strict`;
+                    
+                    // Redirect based on role
+                    if (authResponse.role === 'ADMIN') {
+                        window.location.href = '/admin/dashboard';
+                    } else {
+                        window.location.href = '/user/dashboard';
+                    }
+                } else {
+                    const error = await response.text();
+                    document.getElementById('errorMessage').textContent = error;
+                    document.getElementById('errorMessage').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = 'Login failed. Please try again.';
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

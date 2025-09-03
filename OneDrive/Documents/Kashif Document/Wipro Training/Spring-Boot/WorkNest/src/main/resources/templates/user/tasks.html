@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <div th:replace="fragments/header :: head"></div>
+    <title th:text="${task.title}">Task Details</title>
+    <style>
+       :root {
+           --primary-color: #007bff;
+           --secondary-color: #6c757d;
+           --success-color: #28a745;
+           --warning-color: #ffc107;
+           --danger-color: #dc3545;
+           --info-color: #17a2b8;
+           --light-color: #f8f9fa;
+           --dark-color: #343a40;
+           --border-color: #dee2e6;
+           --shadow: 0 2px 10px rgba(0,0,0,0.1);
+       }
+       
+       .content-box { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 2rem;}
+       .task-detail-header { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem; }
+       .comment-section { margin-top: 2rem; }
+       .comment { border-bottom: 1px solid var(--border-color); padding: 1rem 0; }
+       .comment:last-child { border-bottom: none; }
+       .comment-author { font-weight: bold; }
+       .comment-date { font-size: 0.8rem; color: #888; margin-left: 10px; }
+       .form-control { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+       .btn { padding: 10px 20px; border-radius: 5px; text-decoration: none; color: white; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; }
+       .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+       .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+       .btn-primary { background-color: var(--primary-color); }
+       .btn-secondary { background-color: var(--secondary-color); }
+       .btn-small { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+       .status-badge { padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 500; }
+       .status-PENDING { background-color: var(--warning-color); color: #333; }
+       .status-IN_PROGRESS { background-color: var(--info-color); color: #fff; }
+       .status-COMPLETED { background-color: var(--success-color); color: #fff; }
+       .status-DELAYED { background-color: var(--danger-color); color: #fff; }
+       .completed-by-admin-notice {
+           background-color: #e7f3ff;
+           border: 1px solid #b3d7ff;
+           padding: 1rem;
+           border-radius: 5px;
+           margin: 1rem 0;
+           color: #004085;
+       }
+       .team-assignment {
+           background-color: var(--light-color);
+           padding: 1.5rem;
+           border-radius: 8px;
+           margin: 1.5rem 0;
+           border: 1px solid var(--border-color);
+       }
+       .team-member { 
+           display: inline-block; 
+           background: #e9ecef; 
+           padding: 0.25rem 0.5rem; 
+           margin: 0.25rem; 
+           border-radius: 15px; 
+           font-size: 0.8rem; 
+           transition: all 0.2s;
+       }
+       .team-member:hover {
+           background: #dee2e6;
+           transform: translateY(-1px);
+       }
+    </style>
+</head>
+<body>
+    <div th:replace="fragments/navbar :: navbar"></div>
+    
+    <script>
+        // Check authentication on page load
+        function checkAuth() {
+            const token = sessionStorage.getItem('jwtToken');
+            const userRole = sessionStorage.getItem('userRole');
+            
+            if (!token || (userRole !== 'USER' && userRole !== 'ADMIN')) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Check if token is expired
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const expirationTime = payload.exp * 1000;
+                const currentTime = Date.now();
+                
+                if (currentTime >= expirationTime) {
+                    sessionStorage.clear();
+                    document.cookie = 'jwtToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                sessionStorage.clear();
+                window.location.href = '/login';
+            }
+        }
+        
+        checkAuth();
+        
+        // Load team members for assignment
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-select all active team members
+            autoSelectActiveTeamMembers();
+        });
+        
+        function autoSelectActiveTeamMembers() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                const label = checkbox.closest('label');
+                const statusSpan = label.querySelector('span:last-child');
+                if (statusSpan && statusSpan.textContent.includes('🟢 Active')) {
+                    checkbox.checked = true;
+                }
+            });
+        }
+        
+        function showAssignmentForm() {
+            // Check if task is completed by admin
+            const adminCompletedNotice = document.querySelector('.completed-by-admin-notice');
+            if (adminCompletedNotice) {
+                alert('This task has been completed by an administrator and cannot be reassigned.');
+                return;
+            }
+            
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            const selectedUserIds = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (selectedUserIds.length === 0) {
+                alert('Please select at least one team member to assign.');
+                return;
+            }
+            
+            // Get selected member names for confirmation
+            const selectedMembers = Array.from(checkboxes).map(cb => {
+                const label = cb.closest('label');
+                const nameSpan = label.querySelector('span');
+                return nameSpan.textContent;
+            });
+            
+            if (confirm(`Assign this task to: ${selectedMembers.join(', ')}?`)) {
+                assignToTeamMembers(selectedUserIds);
+            }
+        }
+        
+        function assignToTeamMembers(userIds) {
+            const token = sessionStorage.getItem('jwtToken');
+            const taskId = window.location.pathname.split('/').pop();
+            
+            // Show loading state
+            const assignButton = document.querySelector('button[onclick="showAssignmentForm()"]');
+            const originalText = assignButton.textContent;
+            assignButton.textContent = 'Assigning...';
+            assignButton.disabled = true;
+            
+            const formData = new FormData();
+            userIds.forEach(userId => formData.append('userIds', userId));
+            
+            fetch(`/api/user/tasks/${taskId}/assign?` + new URLSearchParams(formData), {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(message => {
+                alert(message);
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error assigning task:', error);
+                alert('Failed to assign task to team members. Please try again.');
+                
+                // Reset button state
+                assignButton.textContent = originalText;
+                assignButton.disabled = false;
+            });
+        }
+
+        function selectAllTeamMembers() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function deselectAllTeamMembers() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+
+        function selectActiveTeamMembers() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                const label = checkbox.closest('label');
+                const statusSpan = label.querySelector('span:last-child');
+                if (statusSpan && statusSpan.textContent.includes('🟢 Active')) {
+                    checkbox.checked = true;
+                } else {
+                    checkbox.checked = false;
+                }
+            });
+        }
+    </script>
+
+    <main class="container">
+        <!-- Flash Messages -->
+        <div th:if="${success}" style="background-color: #d4edda; color: #155724; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
+            <span th:text="${success}"></span>
+        </div>
+        <div th:if="${error}" style="background-color: #f8d7da; color: #721c24; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
+            <span th:text="${error}"></span>
+        </div>
+        
+        <div class="content-box">
+            <div class="task-detail-header">
+                <h1 th:text="${task.title}">Task Title</h1>
+                <p><strong>Due Date:</strong> <span th:text="${#dates.format(task.dueDate, 'dd MMM yyyy')}"></span></p>
+                <p><strong>Status:</strong> <span class="status-badge" th:classappend="'status-' + ${task.status}" th:text="${task.status}">STATUS</span></p>
+                
+                <!-- Show assigned users -->
+                <p><strong>Assigned To:</strong> 
+                    <span th:each="user, iterStat : ${task.assignedUsers}" th:text="${user.name} + (${!iterStat.last} ? ', ' : '')"></span>
+                </p>
+                
+                <!-- Admin completion notice -->
+                <div th:if="${task.completedByAdmin}" class="completed-by-admin-notice">
+                    <strong>🔒 This task has been completed by an administrator.</strong><br>
+                    Status cannot be changed by users. Completed on: <span th:text="${#dates.format(task.completedAt, 'dd MMM yyyy, h:mm a')}"></span>
+                </div>
+            </div>
+            
+            <p th:text="${task.description}">Task description.</p>
+            
+            <!-- Team Assignment Section -->
+            <div class="team-assignment" id="teamAssignmentSection">
+                <h4>Assign to Team Members</h4>
+                
+                <!-- Admin completion notice - disable assignment -->
+                <div th:if="${task.completedByAdmin != null and task.completedByAdmin}" style="text-align: center; padding: 1.5rem; background: #e7f3ff; border-radius: 8px; border-left: 4px solid #17a2b8; margin-bottom: 1rem;">
+                    <h5 style="margin: 0 0 0.5rem 0; color: #004085;">🔒 Task Assignment Disabled</h5>
+                    <p style="margin: 0; color: #004085; font-style: italic;">This task has been completed by an administrator and cannot be reassigned.</p>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #004085;">Task assignment is now closed.</p>
+                </div>
+                
+                <!-- Team members for assignment (server-side) - only show if not completed by admin -->
+                <div th:if="${!#lists.isEmpty(teamMembers) and (task.completedByAdmin == null or !task.completedByAdmin)}" style="margin-bottom: 1rem;">
+                    <h5 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem;">Select Team Members to Assign:</h5>
+                    
+                    <!-- Select All/None buttons -->
+                    <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn btn-small" style="background: #28a745; padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="selectAllTeamMembers()">Select All</button>
+                        <button type="button" class="btn btn-small" style="background: #6c757d; padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="deselectAllTeamMembers()">Select None</button>
+                        <button type="button" class="btn btn-small" style="background: #17a2b8; padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="selectActiveTeamMembers()">Select Active Only</button>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+                        <label th:each="member : ${teamMembers}" 
+                               style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6; cursor: pointer; transition: all 0.2s;"
+                               th:onmouseover="this.style.background='#e9ecef'"
+                               th:onmouseout="this.style.background='#f8f9fa'">
+                            <input type="checkbox" th:value="${member.id}" style="margin: 0; cursor: pointer;">
+                            <span style="font-weight: 500;" th:text="${member.name}">Member Name</span>
+                            <span style="font-size: 0.8rem; color: #666;" th:text="'(' + ${member.email} + ')'">(email@example.com)</span>
+                            <span th:if="${member.isActive != null and !member.isActive}" style="color: #dc3545; font-size: 0.8rem;"> (On Leave)</span>
+                            <span th:if="${member.isActive != null and member.isActive}" style="color: #28a745; font-size: 0.8rem; margin-left: auto;">🟢 Active</span>
+                            <span th:if="${member.isActive != null and !member.isActive}" style="color: #dc3545; font-size: 0.8rem; margin-left: auto;">🔴 On Leave</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- No team members message -->
+                <div th:if="${#lists.isEmpty(teamMembers) and (task.completedByAdmin == null or !task.completedByAdmin)}" style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #6c757d; margin-bottom: 1rem;">
+                    <p style="margin: 0; color: #666; font-style: italic;">You are not part of any team yet.</p>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #999;">Contact your administrator to be added to a team.</p>
+                </div>
+                
+                <button type="button" class="btn btn-secondary btn-small" onclick="showAssignmentForm()" 
+                        th:disabled="${#lists.isEmpty(teamMembers) or (task.completedByAdmin != null and task.completedByAdmin)}">Assign to Team</button>
+            </div>
+
+            <!-- Status Update Form (only if not completed by admin) -->
+            <form th:if="${!task.completedByAdmin}" th:action="@{/user/tasks/{id}/updateStatus(id=${task.id})}" method="post" style="margin-top: 2rem;">
+                 <label>Update Status:</label>
+                 <select name="status" class="form-control" style="width: auto; display: inline-block; margin: 0 10px;">
+                    <option value="PENDING" th:selected="${task.status == 'PENDING'}">Pending</option>
+                    <option value="IN_PROGRESS" th:selected="${task.status == 'IN_PROGRESS'}">In Progress</option>
+                    <option value="COMPLETED" th:selected="${task.status == 'COMPLETED'}">Completed</option>
+                 </select>
+                 <button type="submit" class="btn btn-primary">Update</button>
+            </form>
+        </div>
+
+        <div class="content-box comment-section">
+            <h2>Comments</h2>
+            <div th:if="${#lists.isEmpty(comments)}">
+                <p>No comments on this task yet.</p>
+            </div>
+            <div th:each="comment : ${comments}" class="comment">
+                <p><strong class="comment-author" th:text="${comment.user.name}"></strong> <span class="comment-date" th:text="${#dates.format(comment.createdAt, 'dd MMM yyyy, h:mm a')}"></span></p>
+                <p th:text="${comment.content}"></p>
+            </div>
+
+            <hr style="margin: 2rem 0;">
+
+            <h3>Add a Comment</h3>
+            <form th:action="@{/user/tasks/{id}/comments/add(id=${task.id})}" th:object="${newComment}" method="post">
+                <textarea th:field="*{content}" class="form-control" rows="4" placeholder="Write your comment here..." required></textarea>
+                <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Post Comment</button>
+            </form>
+        </div>
+
+    </main>
+
+    <div th:replace="fragments/footer :: footer"></div>
+</body>
+</html>
+

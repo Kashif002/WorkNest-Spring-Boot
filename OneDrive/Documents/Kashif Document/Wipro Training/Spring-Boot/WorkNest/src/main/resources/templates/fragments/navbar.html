@@ -1,0 +1,48 @@
+<nav class="navbar" th:fragment="navbar" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5">
+    <style>
+        .navbar { background: linear-gradient(90deg, var(--secondary-color), var(--primary-color)); padding: 1rem 2rem; box-shadow: var(--shadow); }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; }
+        .navbar-brand { color: var(--light-text); font-size: 1.5rem; font-weight: bold; text-decoration: none; cursor: pointer; }
+        .nav-links { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; }
+        .nav-links li { margin-left: 20px; }
+        .nav-links a { color: var(--light-text); text-decoration: none; font-weight: 500; transition: opacity 0.2s; cursor: pointer; }
+        .nav-links a:hover { opacity: 0.8; }
+        .logout-btn { background-color: transparent; border: 1px solid var(--light-text); color: var(--light-text); padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: 500; font-size: 1rem; }
+    </style>
+
+    <div class="nav-container">
+        <a class="navbar-brand" th:href="@{/}">WorkNest</a>
+        <ul class="nav-links">
+            <li sec:authorize="!isAuthenticated()"><a th:href="@{/login?force=true}">Login</a></li>
+            <li sec:authorize="!isAuthenticated()"><a th:href="@{/register}">Register</a></li>
+
+            <li sec:authorize="hasRole('USER')"><a th:href="@{/user/dashboard}">Dashboard</a></li>
+            <li sec:authorize="hasRole('USER')"><a th:href="@{/user/my-tasks}">My Tasks</a></li>
+            <li sec:authorize="hasRole('USER')"><a th:href="@{/user/my-team}">My Team Members</a></li>
+            <li sec:authorize="hasRole('USER')"><a th:href="@{/user/my-comments}">My Comments</a></li>
+            <li sec:authorize="hasRole('ADMIN')"><a th:href="@{/admin/dashboard}">Admin Dashboard</a></li>
+            <li sec:authorize="hasRole('ADMIN')"><a th:href="@{/admin/tasks}">Manage Tasks</a></li>
+            <li sec:authorize="hasRole('ADMIN')"><a th:href="@{/admin/users}">Manage Users</a></li>
+            <li sec:authorize="hasRole('ADMIN')"><a th:href="@{/admin/groups}">Manage Groups</a></li>
+
+            <li sec:authorize="isAuthenticated()">
+                <button id="logoutBtn" class="logout-btn">Logout</button>
+            </li>
+        </ul>
+    </div>
+    
+   <script th:if="${#authorization.expr('isAuthenticated()')}">
+	    document.getElementById('logoutBtn').addEventListener('click', function() {
+	        // Clear session storage
+	        sessionStorage.removeItem('jwtToken');
+	        sessionStorage.removeItem('userRole');
+	        sessionStorage.removeItem('userName');
+	        
+	        // Clear JWT cookie
+	        document.cookie = 'jwtToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+	        
+	        // Redirect to login with logout parameter to prevent auto-redirect
+	        window.location.href = '/login?logout=true';
+	    });
+	</script>
+</nav>

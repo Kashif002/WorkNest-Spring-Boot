@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <div th:replace="fragments/header :: head"></div>
+    <title>My Tasks</title>
+    <style>
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .task-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid #e9ecef;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .task-card.pending { border-left-color: #ffc107; }
+        .task-card.in-progress { border-left-color: #17a2b8; }
+        .task-card.completed { border-left-color: #28a745; }
+        .task-card.delayed { border-left-color: #dc3545; }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .task-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            color: #333;
+        }
+        .task-title a {
+            text-decoration: none;
+            color: inherit;
+        }
+        .task-title a:hover {
+            color: var(--primary-color);
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-PENDING { background-color: #fff3cd; color: #856404; }
+        .status-IN_PROGRESS { background-color: #d1ecf1; color: #0c5460; }
+        .status-COMPLETED { background-color: #d4edda; color: #155724; }
+        .status-DELAYED { background-color: #f8d7da; color: #721c24; }
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        .task-description {
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+        .completed-by-admin-badge {
+            background-color: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        .filters {
+            background: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: #fff;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .filter-btn:hover {
+            border-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="fragments/navbar :: navbar"></div>
+    
+    <main class="container">
+        <h1>My Tasks</h1>
+        
+        <!-- Team Members Section -->
+        <div class="team-section" style="background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 1.5rem;">
+            <h3 style="margin: 0 0 1rem 0; color: #333;">My Team Members</h3>
+            <div th:if="${#lists.isEmpty(teamMembers)}" style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #6c757d;">
+                <p style="margin: 0; color: #666; font-style: italic;">You are not part of any team yet.</p>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #999;">Contact your administrator to be added to a team.</p>
+            </div>
+            <div th:if="${!#lists.isEmpty(teamMembers)}" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                <span th:each="member : ${teamMembers}" 
+                      style="display: inline-block; background: #f8f9fa; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; border: 1px solid #e9ecef;">
+                    <strong th:text="${member.name}">Member Name</strong>
+                    <span th:if="${member.isActive != null and !member.isActive}" style="color: #dc3545; font-size: 0.8rem;"> (On Leave)</span>
+                </span>
+            </div>
+        </div>
+        
+        <!-- Task Filters -->
+        <div class="filters">
+            <span style="font-weight: 600;">Filter by status:</span>
+            <button class="filter-btn active" onclick="filterTasks('ALL')">All</button>
+            <button class="filter-btn" onclick="filterTasks('PENDING')">Pending</button>
+            <button class="filter-btn" onclick="filterTasks('IN_PROGRESS')">In Progress</button>
+            <button class="filter-btn" onclick="filterTasks('COMPLETED')">Completed</button>
+            <button class="filter-btn" onclick="filterTasks('DELAYED')">Delayed</button>
+        </div>
+        
+        <div th:if="${#lists.isEmpty(tasks)}" style="text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #28a745;">
+            <h3 style="margin: 0 0 1rem 0; color: #28a745;">No tasks assigned to you</h3>
+            <p style="margin: 0; color: #666;">Great job! You have completed all your tasks or no tasks have been assigned yet.</p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #999;">Contact your administrator if you need new assignments.</p>
+        </div>
+
+        <div class="task-grid">
+            <div th:each="task : ${tasks}" class="task-card" th:classappend="${#strings.toLowerCase(task.status)}" th:attr="data-status=${task.status}">
+                <div class="task-header">
+                    <h3 class="task-title">
+                        <a th:href="@{/user/tasks/{id}(id=${task.id})}" th:text="${task.title}">Task Title</a>
+                    </h3>
+                    <span class="status-badge" th:classappend="'status-' + ${task.status}" th:text="${task.status}">STATUS</span>
+                </div>
+                
+                <div class="task-meta">
+                    <span>Start: <span th:text="${#dates.format(task.startDate, 'dd MMM yyyy')}">01 Sep 2025</span></span>
+                    <span>Due: <span th:text="${#dates.format(task.dueDate, 'dd MMM yyyy')}">07 Sep 2025</span></span>
+                </div>
+                
+                <p class="task-description" th:text="${task.description}">Task description goes here.</p>
+                
+                <!-- Show if completed by admin -->
+                <div th:if="${task.completedByAdmin}" style="margin-top: 1rem;">
+                    <span class="completed-by-admin-badge">🔒 Completed by Admin</span>
+                </div>
+                
+                <!-- Assigned users -->
+                <div style="margin-top: 1rem; font-size: 0.85rem; color: #666;">
+                    <strong>Assigned to:</strong> 
+                    <div style="margin-top: 0.5rem;">
+                        <span th:if="${#lists.isEmpty(task.assignedUsers)}" style="color: #999; font-style: italic;">Working alone</span>
+                        <span th:if="${!#lists.isEmpty(task.assignedUsers)}" th:each="user, iterStat : ${task.assignedUsers}" 
+                              th:style="${user.isActive != null and user.isActive} ? 'color: #28a745;' : 'color: #dc3545;'"
+                              style="display: inline-block; margin-right: 0.5rem; padding: 2px 8px; background: #f8f9fa; border-radius: 12px;">
+                            <span th:text="${user.name}">User Name</span>
+                            <span th:if="${user.isActive != null and !user.isActive}" style="color: #dc3545;"> (On Leave)</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function filterTasks(status) {
+            const cards = document.querySelectorAll('.task-card');
+            const buttons = document.querySelectorAll('.filter-btn');
+            
+            // Update active button
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Filter cards
+            cards.forEach(card => {
+                if (status === 'ALL' || card.getAttribute('data-status') === status) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+
+    <div th:replace="fragments/footer :: footer"></div>
+</body>
+</html>

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <div th:replace="fragments/header :: head"></div>
+    <title>My Dashboard</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --border-color: #dee2e6;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --dark-text: #333;
+        }
+        
+        .task-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            transition: box-shadow 0.2s;
+        }
+        .task-card:hover {
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        .task-title {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        .task-title a {
+            text-decoration: none;
+            color: var(--dark-text);
+        }
+        .task-title a:hover {
+            color: var(--primary-color);
+        }
+        .task-status {
+            display: flex;
+            align-items: center;
+        }
+        .status-badge { padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 500; }
+        .status-PENDING { background-color: #ffc107; color: #333; }
+        .status-IN_PROGRESS { background-color: #17a2b8; color: #fff; }
+        .status-COMPLETED { background-color: #28a745; color: #fff; }
+        .status-DELAYED { background-color: #dc3545; color: #fff; }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        .stat-card h3 { margin: 0 0 0.5rem 0; font-size: 1rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .count { font-size: 2.5rem; font-weight: bold; margin: 0; color: var(--primary-color); }
+        .stat-card.pending { border-left-color: #ffc107; }
+        .stat-card.pending .count { color: #ffc107; }
+        .stat-card.in-progress { border-left-color: #17a2b8; }
+        .stat-card.in-progress .count { color: #17a2b8; }
+        .stat-card.completed { border-left-color: #28a745; }
+        .stat-card.completed .count { color: #28a745; }
+        .stat-card.delayed { border-left-color: #dc3545; }
+        .stat-card.delayed .count { color: #dc3545; }
+        .team-section {
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+        .team-member {
+            display: inline-block;
+            background: #f8f9fa;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            border-radius: 20px;
+        }
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .member-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+        .member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .member-avatar {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.75rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: white;
+        }
+        .member-name {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 0.25rem 0;
+            color: #333;
+        }
+        .member-email {
+            color: #666;
+            font-size: 0.8rem;
+            margin-bottom: 0.75rem;
+        }
+        .member-role {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .role-USER {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        .role-ADMIN {
+            background-color: #dc3545;
+            color: white;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+        .status-active {
+            background-color: #28a745;
+        }
+        .status-inactive {
+            background-color: #dc3545;
+        }
+        .no-team {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        .btn { padding: 0.5rem 1rem; border-radius: 5px; border: none; cursor: pointer; font-weight: 500; }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-small { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+        .completed-by-admin-badge { background-color: #28a745; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; }
+        .completed-by-admin { border-left: 4px solid #28a745; background-color: #f8f9fa; }
+        .welcome-section {
+            background: linear-gradient(135deg, var(--primary-color), #667eea);
+            color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .welcome-section h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+        .welcome-section p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            position: relative;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 1rem;
+            top: 0.5rem;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .multi-select {
+            min-height: 100px;
+        }
+        
+        .action-buttons {
+            margin-top: 1.5rem;
+            text-align: right;
+        }
+        
+        .action-buttons .btn {
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="fragments/navbar :: navbar"></div>
+    
+    <script>
+        // Check authentication on page load
+        function checkAuth() {
+            const token = sessionStorage.getItem('jwtToken');
+            const userRole = sessionStorage.getItem('userRole');
+            
+            if (!token || (userRole !== 'USER' && userRole !== 'ADMIN')) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // If admin tries to access user dashboard, redirect to admin dashboard
+            if (userRole === 'ADMIN') {
+                window.location.href = '/admin/dashboard';
+                return;
+            }
+            
+            // Check if token is expired
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const expirationTime = payload.exp * 1000;
+                const currentTime = Date.now();
+                
+                if (currentTime >= expirationTime) {
+                    sessionStorage.clear();
+                    document.cookie = 'jwtToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                sessionStorage.clear();
+                window.location.href = '/login';
+            }
+        }
+        
+        // Check authentication when page loads
+        checkAuth();
+        
+        // No need to load team members via JavaScript since we have server-side data
+    </script>
+
+    <main class="container">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <h1 th:text="'Welcome, ' + ${user.name} + '!'">Welcome!</h1>
+            <p>Ready to tackle your tasks today? Let's make progress together.</p>
+        </div>
+        
+        <!-- Task Statistics -->
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <h3>Total Tasks</h3>
+                <p class="count" th:text="${#lists.size(tasks)}">0</p>
+            </div>
+            <div class="stat-card pending">
+                <h3>Pending</h3>
+                <p class="count" th:text="${#lists.size(tasks.?[status == 'PENDING'])}">0</p>
+            </div>
+            <div class="stat-card in-progress">
+                <h3>In Progress</h3>
+                <p class="count" th:text="${#lists.size(tasks.?[status == 'IN_PROGRESS'])}">0</p>
+            </div>
+            <div class="stat-card completed">
+                <h3>Completed</h3>
+                <p class="count" th:text="${#lists.size(tasks.?[status == 'COMPLETED'])}">0</p>
+            </div>
+            <div class="stat-card delayed">
+                <h3>Delayed</h3>
+                <p class="count" th:text="${#lists.size(tasks.?[status == 'DELAYED'])}">0</p>
+            </div>
+        </div>
+        
+        <!-- Team Members Section -->
+        <div class="team-section">
+            <h3>My Team Members</h3>
+            <div th:if="${#lists.isEmpty(teamMembers)}" class="no-team">
+                <p>You are not part of any team yet.</p>
+                <p>Contact your administrator to be added to a team.</p>
+            </div>
+            <div th:if="${!#lists.isEmpty(teamMembers)}" class="team-grid">
+                <div th:each="member : ${teamMembers}" class="member-card">
+                    <div class="member-avatar" th:text="${member.name.substring(0, 1)}"></div>
+                    <div class="member-name" th:text="${member.name}">Member Name</div>
+                    <div class="member-email" th:text="${member.email}">email@example.com</div>
+                    <div class="member-role" th:classappend="'role-' + ${member.role}">
+                        <span class="status-indicator" th:classappend="'status-' + (${member.isActive} ? 'active' : 'inactive')"></span>
+                        <span th:text="${member.role}">Role</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <h2>Your Assigned Tasks</h2>
+
+        <div th:if="${#lists.isEmpty(tasks)}">
+            <div style="text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #28a745;">
+                <h3 style="margin: 0 0 1rem 0; color: #28a745;">No tasks assigned to you</h3>
+                <p style="margin: 0; color: #666;">Great job! You have completed all your tasks or no tasks have been assigned yet.</p>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #999;">Contact your administrator if you need new assignments.</p>
+            </div>
+        </div>
+
+        <div class="tasks-list">
+            <div th:each="task : ${tasks}" class="task-card" th:classappend="${task.completedByAdmin != null and task.completedByAdmin} ? 'completed-by-admin' : ''">
+                <div class="task-header">
+                    <div>
+                        <h3 class="task-title">
+                            <a th:href="@{/user/tasks/{id}(id=${task.id})}" th:text="${task.title}">Task Title</a>
+                            <span th:if="${task.completedByAdmin != null and task.completedByAdmin}" class="completed-by-admin-badge">Admin Completed</span>
+                        </h3>
+                        <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                            <small th:if="${task.startDate != null}" th:text="'Start: ' + ${#dates.format(task.startDate, 'dd MMM yyyy')}"></small>
+                            <small th:if="${task.dueDate != null}" th:text="'Due: ' + ${#dates.format(task.dueDate, 'dd MMM yyyy')}"></small>
+                        </div>
+                    </div>
+                    <div class="task-status">
+                       <span class="status-badge" th:classappend="'status-' + ${task.status}" th:text="${task.status}">STATUS</span>
+                    </div>
+                </div>
+                <p th:text="${task.description}">Task description goes here.</p>
+                
+                <!-- Reassign functionality for team members -->
+                <div th:if="${!#lists.isEmpty(teamMembers) and task.completedByAdmin == null or !task.completedByAdmin}" style="margin-top: 1rem;">
+                    <button class="btn btn-small btn-secondary" th:onclick="'reassignTask(' + ${task.id} + ')'">Reassign to Team Member</button>
+                </div>
+                
+                <!-- Additional task info -->
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.9rem; color: #666;">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                        <span>Assigned by: <strong th:text="${task.assignedBy != null ? task.assignedBy.name : 'System'}">Admin</strong></span>
+                        <span>Collaborators: 
+                            <span th:if="${#lists.isEmpty(task.assignedUsers)}" style="color: #999; font-style: italic;">Working alone</span>
+                            <span th:if="${!#lists.isEmpty(task.assignedUsers)}" th:each="user, iterStat : ${task.assignedUsers}">
+                                <span th:text="${user.name}" th:style="${user.isActive != null and user.isActive} ? '' : 'color: #dc3545;'"></span>
+                                <span th:if="${user.isActive != null and !user.isActive}" style="color: #dc3545;"> (On Leave)</span>
+                                <span th:if="${!iterStat.last}">, </span>
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Reassign Task Modal -->
+    <div id="reassignModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Reassign Task</h2>
+            <form id="reassignForm">
+                <input type="hidden" id="reassignTaskId">
+                <div class="form-group">
+                    <label>Assign to Users:</label>
+                    <select id="reassignUsers" class="form-control multi-select" multiple>
+                        <option th:each="member : ${teamMembers}" th:value="${member.id}" th:text="${member.name}"></option>
+                    </select>
+                </div>
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-primary">Reassign</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeReassignModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Reassign task functionality
+        function reassignTask(id) {
+            document.getElementById('reassignTaskId').value = id;
+            document.getElementById('reassignModal').style.display = 'block';
+        }
+
+        function closeReassignModal() {
+            document.getElementById('reassignModal').style.display = 'none';
+        }
+
+        // Handle reassign form submission
+        document.getElementById('reassignForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const token = sessionStorage.getItem('jwtToken');
+            const taskId = document.getElementById('reassignTaskId').value;
+            const selectedUsers = Array.from(document.getElementById('reassignUsers').selectedOptions).map(option => option.value);
+            
+            if (selectedUsers.length === 0) {
+                alert('Please select at least one team member');
+                return;
+            }
+
+            const formData = new FormData();
+            selectedUsers.forEach(userId => formData.append('userIds', userId));
+
+            fetch(`/api/user/tasks/${taskId}/assign?` + new URLSearchParams(formData), {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(message => {
+                alert(message);
+                closeReassignModal();
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to reassign task: ' + error.message);
+            });
+        });
+
+        // Modal close functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.close').forEach(function(closeBtn) {
+                closeBtn.onclick = function() {
+                    const modal = this.closest('.modal');
+                    if (modal) {
+                        modal.style.display = 'none';
+                    }
+                }
+            });
+        });
+
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(function(modal) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    </script>
+
+    <div th:replace="fragments/footer :: footer"></div>
+</body>
+</html>

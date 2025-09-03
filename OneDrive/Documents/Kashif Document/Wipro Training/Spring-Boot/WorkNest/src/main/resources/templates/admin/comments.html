@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <div th:replace="fragments/header :: head"></div>
+    <title>Manage Comments</title>
+    <style>
+        .page-header { margin-bottom: 2rem; }
+        .comments-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .content-box { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: var(--shadow); }
+        .comment-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+        }
+        .comment-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        .comment-author { font-weight: bold; }
+        .comment-task-link a { color: var(--primary-color); text-decoration: none; font-weight: 500;}
+        .comment-date { font-size: 0.9rem; color: #6c757d; }
+        .comment-stats {
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .filter-section {
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .form-control {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="fragments/navbar :: navbar"></div>
+
+    <script>
+        // Check authentication on page load
+        function checkAuth() {
+            const token = sessionStorage.getItem('jwtToken');
+            const userRole = sessionStorage.getItem('userRole');
+            
+            if (!token || userRole !== 'ADMIN') {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Check if token is expired
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const expirationTime = payload.exp * 1000;
+                const currentTime = Date.now();
+                
+                if (currentTime >= expirationTime) {
+                    sessionStorage.clear();
+                    document.cookie = 'jwtToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                sessionStorage.clear();
+                window.location.href = '/login';
+            }
+        }
+        
+        checkAuth();
+    </script>
+
+    <main class="container">
+        <div class="comments-container">
+            <h1>All Comments</h1>
+            
+            <!-- Comment Statistics -->
+            <div class="comment-stats">
+                <div class="stat-number" th:text="${#lists.size(comments)}">0</div>
+                <div>Total Comments from All Users</div>
+            </div>
+            
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <h3>Filter Comments</h3>
+                <div class="filter-row">
+                    <label>Filter by user:</label>
+                    <select id="userFilter" class="form-control" style="width: 200px;">
+                        <option value="">All Users</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="filterComments()">Filter</button>
+                    <button class="btn btn-secondary" onclick="clearFilter()">Clear</button>
+                </div>
+            </div>
+
+            <div class="content-box">
+                <div th:if="${#lists.isEmpty(comments)}">
+                    <p>There are no comments in the system yet.</p>
+                </div>
+
+                <div th:each="comment : ${comments}" class="comment-card" th:data-user-name="${comment.user.name}">
+                    <div class="comment-meta">
+                        <div>
+                            <span class="comment-author" th:text="${comment.user.name}">User Name</span>
+                            <span class="comment-task-link">on task:
+                                <a th:href="@{/user/tasks/{id}(id=${comment.task.id})}" th:text="${comment.task.title}">Task Title</a>
+                            </span>
+                        </div>
+                        <span class="comment-date" th:text="${#dates.format(comment.createdAt, 'dd MMM yyyy, h:mm a')}">Comment Date</span>
+                    </div>
+                    <p class="comment-content" th:text="${comment.content}">
+                        This is the comment content.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Populate user filter with unique users from comments
+        document.addEventListener('DOMContentLoaded', function() {
+            const userFilter = document.getElementById('userFilter');
+            const uniqueUsers = new Set();
+            
+            // Collect unique users from comments
+            document.querySelectorAll('.comment-card').forEach(card => {
+                const userName = card.dataset.userName;
+                if (userName && !uniqueUsers.has(userName)) {
+                    uniqueUsers.add(userName);
+                    const option = document.createElement('option');
+                    option.value = userName;
+                    option.text = userName;
+                    userFilter.appendChild(option);
+                }
+            });
+        });
+        
+        function filterComments() {
+            const selectedUser = document.getElementById('userFilter').value;
+            const commentCards = document.querySelectorAll('.comment-card');
+            
+            commentCards.forEach(card => {
+                if (!selectedUser || card.dataset.userName === selectedUser) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        function clearFilter() {
+            document.getElementById('userFilter').value = '';
+            const commentCards = document.querySelectorAll('.comment-card');
+            commentCards.forEach(card => {
+                card.style.display = 'block';
+            });
+        }
+    </script>
+
+    <div th:replace="fragments/footer :: footer"></div>
+</body>
+</html>
