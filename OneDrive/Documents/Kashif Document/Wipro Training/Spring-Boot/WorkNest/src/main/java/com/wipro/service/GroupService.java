@@ -29,6 +29,10 @@ public class GroupService {
     public Group findById(Integer id) {
         return groupRepository.findById(id).orElse(null);
     }
+    
+    public Group findGroupById(Integer id) {
+        return groupRepository.findById(id).orElse(null);
+    }
 
     public Group save(Group group) {
         return groupRepository.save(group);

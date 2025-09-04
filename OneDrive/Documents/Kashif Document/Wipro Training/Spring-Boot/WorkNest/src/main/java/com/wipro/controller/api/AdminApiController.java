@@ -18,6 +18,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -157,9 +160,28 @@ public class AdminApiController {
     }
     
     @PutMapping("/tasks/{id}/reassign")
-    public ResponseEntity<?> reassignTask(@PathVariable Integer id, @RequestParam List<Integer> userIds) {
+    public ResponseEntity<?> reassignTask(@PathVariable Integer id, 
+                                        @RequestParam(required = false) List<Integer> userIds,
+                                        @RequestParam(required = false) List<Integer> groupIds) {
         try {
-            Task reassignedTask = taskService.reassignTask(id, userIds);
+            Set<Integer> allUserIds = new HashSet<>();
+            
+            // Add directly selected users
+            if (userIds != null && !userIds.isEmpty()) {
+                allUserIds.addAll(userIds);
+            }
+            
+            // Add users from selected groups
+            if (groupIds != null && !groupIds.isEmpty()) {
+                for (Integer groupId : groupIds) {
+                    Group group = groupService.findGroupById(groupId);
+                    if (group != null && group.getMembers() != null) {
+                        group.getMembers().forEach(member -> allUserIds.add(member.getId()));
+                    }
+                }
+            }
+            
+            Task reassignedTask = taskService.reassignTask(id, new ArrayList<>(allUserIds));
             if (reassignedTask != null) {
                 return ResponseEntity.ok("Task reassigned successfully");
             }

@@ -63,6 +63,52 @@
         }
         
         checkAuth();
+
+        // Group and User selection logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const userSelect = document.getElementById('userSelect');
+            const groupSelect = document.getElementById('groupSelect');
+            
+            // Store group member mappings
+            const groupMembers = {};
+            
+            // Initialize group member mappings from the page data
+            <th:block th:each="group : ${groups}">
+                groupMembers[<span th:text="${group.id}"></span>] = [
+                    <th:block th:each="member, iterStat : ${group.members}">
+                        <span th:text="${member.id}"></span><span th:if="${!iterStat.last}">,</span>
+                    </th:block>
+                ];
+            </th:block>
+            
+            // Handle group selection
+            groupSelect.addEventListener('change', function() {
+                const selectedGroups = Array.from(this.selectedOptions).map(option => option.value);
+                const selectedUsers = new Set();
+                
+                // Collect all users from selected groups
+                selectedGroups.forEach(groupId => {
+                    if (groupMembers[groupId]) {
+                        groupMembers[groupId].forEach(userId => {
+                            selectedUsers.add(userId.toString());
+                        });
+                    }
+                });
+                
+                // Update user selection
+                Array.from(userSelect.options).forEach(option => {
+                    if (selectedUsers.has(option.value)) {
+                        option.selected = true;
+                    }
+                });
+            });
+            
+            // Handle user selection (optional: could clear group selection if users are manually selected)
+            userSelect.addEventListener('change', function() {
+                // This could be used to clear group selection if needed
+                // For now, we'll allow both to be selected independently
+            });
+        });
     </script>
 
     <main class="container">
@@ -109,10 +155,17 @@
                 </div>
                 <div class="form-group">
                     <label>Assign to Users</label>
-                    <select name="userIds" class="form-control multi-select" multiple>
+                    <select name="userIds" id="userSelect" class="form-control multi-select" multiple>
                         <option th:each="user : ${users}" th:value="${user.id}" th:text="${user.name + ' (' + user.email + ')'}"></option>
                     </select>
                     <small style="color: #666;">Hold Ctrl/Cmd to select multiple users</small>
+                </div>
+                <div class="form-group">
+                    <label>Or Assign to Groups</label>
+                    <select name="groupIds" id="groupSelect" class="form-control multi-select" multiple>
+                        <option th:each="group : ${groups}" th:value="${group.id}" th:text="${group.name + ' (' + #lists.size(group.members) + ' members)'}"></option>
+                    </select>
+                    <small style="color: #666;">Hold Ctrl/Cmd to select multiple groups. All members of selected groups will be assigned to this task.</small>
                 </div>
                 <button type="submit" class="btn btn-primary">Save Task</button>
             </form>
@@ -185,6 +238,13 @@
                     <select id="reassignUsers" class="form-control multi-select" multiple>
                         <option th:each="user : ${users}" th:value="${user.id}" th:text="${user.name}"></option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Or Assign to Groups:</label>
+                    <select id="reassignGroups" class="form-control multi-select" multiple>
+                        <option th:each="group : ${groups}" th:value="${group.id}" th:text="${group.name + ' (' + #lists.size(group.members) + ' members)'}"></option>
+                    </select>
+                    <small style="color: #666;">All members of selected groups will be assigned to this task.</small>
                 </div>
                 <div class="action-buttons">
                     <button type="submit" class="btn btn-primary">Reassign</button>
@@ -275,14 +335,16 @@
             const token = sessionStorage.getItem('jwtToken');
             const taskId = document.getElementById('reassignTaskId').value;
             const selectedUsers = Array.from(document.getElementById('reassignUsers').selectedOptions).map(option => option.value);
+            const selectedGroups = Array.from(document.getElementById('reassignGroups').selectedOptions).map(option => option.value);
             
-            if (selectedUsers.length === 0) {
-                alert('Please select at least one user');
+            if (selectedUsers.length === 0 && selectedGroups.length === 0) {
+                alert('Please select at least one user or group to reassign.');
                 return;
             }
 
             const formData = new FormData();
             selectedUsers.forEach(userId => formData.append('userIds', userId));
+            selectedGroups.forEach(groupId => formData.append('groupIds', groupId));
 
             fetch(`/api/admin/tasks/${taskId}/reassign?` + new URLSearchParams(formData), {
                 method: 'PUT',

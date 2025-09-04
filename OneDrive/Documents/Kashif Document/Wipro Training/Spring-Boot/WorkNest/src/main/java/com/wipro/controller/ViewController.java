@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
 
 @Controller
 public class ViewController {
@@ -76,12 +77,14 @@ public class ViewController {
         try {
             List<Task> tasks = taskService.findAllTasks();
             List<User> users = userService.findAllUsers();
-            
-            // Add tasks and users to model
+            List<Group> groups = groupService.findAllGroups();
+
+            // Add tasks, users, and groups to model
             model.addAttribute("tasks", tasks);
             model.addAttribute("users", users);
+            model.addAttribute("groups", groups);
             model.addAttribute("task", new Task()); // For the form
-            
+
             return "admin/tasks";
         } catch (Exception e) {
             System.err.println("Error in adminTasks: " + e.getMessage());
@@ -120,22 +123,41 @@ public class ViewController {
     }
     
     @PostMapping("/admin/tasks/add")
-    public String addTask(@ModelAttribute Task task, @RequestParam(required = false) List<Integer> userIds, RedirectAttributes redirectAttributes) {
+    public String addTask(@ModelAttribute Task task, 
+                         @RequestParam(required = false) List<Integer> userIds, 
+                         @RequestParam(required = false) List<Integer> groupIds, 
+                         RedirectAttributes redirectAttributes) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication != null && authentication.getPrincipal() instanceof User) {
                 User currentUser = (User) authentication.getPrincipal();
                 task.setAssignedBy(currentUser);
                 
-                // Set assigned users
+                Set<User> assignedUsers = new HashSet<>();
+                
+                // Add directly selected users
                 if (userIds != null && !userIds.isEmpty()) {
-                    task.setAssignedUsers(new HashSet<>());
                     for (Integer userId : userIds) {
                         User user = userService.findUserById(userId);
                         if (user != null) {
-                            task.getAssignedUsers().add(user);
+                            assignedUsers.add(user);
                         }
                     }
+                }
+                
+                // Add users from selected groups
+                if (groupIds != null && !groupIds.isEmpty()) {
+                    for (Integer groupId : groupIds) {
+                        Group group = groupService.findGroupById(groupId);
+                        if (group != null && group.getMembers() != null) {
+                            assignedUsers.addAll(group.getMembers());
+                        }
+                    }
+                }
+                
+                // Set all assigned users to the task
+                if (!assignedUsers.isEmpty()) {
+                    task.setAssignedUsers(assignedUsers);
                 }
                 
                 taskService.save(task);
